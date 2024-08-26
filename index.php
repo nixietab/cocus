@@ -138,8 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && !isset($_GET['img'])) {
             color: #61dafb;
             text-decoration: none;
             font-size: 12px;
-            position: fixed;
-            bottom: 10px;
+            margin-top: 20px;
         }
         a:hover {
             text-decoration: underline;
