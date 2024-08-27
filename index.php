@@ -2,31 +2,39 @@
 // Handle file uploads
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-        $currentDir = dirname($_SERVER['SCRIPT_NAME']);
-        $uploadDir = __DIR__ . '/uploads/';
+        $fileType = mime_content_type($_FILES['image']['tmp_name']);
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
-        }
+        if (in_array($fileType, $allowedTypes)) {
+            $currentDir = dirname($_SERVER['SCRIPT_NAME']);
+            $uploadDir = __DIR__ . '/uploads/';
 
-        $fileName = basename($_FILES['image']['name']);
-        $uploadFile = $uploadDir . $fileName;
-
-        if (move_uploaded_file($_FILES['image']['tmp_name'], $uploadFile)) {
-            $deleteOption = $_POST['delete_option'] ?? 'time'; // Default to 'time' if not set
-            if ($deleteOption === 'time') {
-                $maxTime = 24 * 60 * 60; // 24 hours in seconds
-                $deleteTime = isset($_POST['delete_time']) ? min(intval($_POST['delete_time']) * 60 * 60, $maxTime) : 1 * 60 * 60; // Default to 1 hour if not set
-                $expiration = time() + $deleteTime;
-                file_put_contents($uploadFile . '.txt', $expiration);
-            } elseif ($deleteOption === 'view') {
-                file_put_contents($uploadFile . '.txt', 'view');
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
             }
 
-            $imageLink = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['HTTP_HOST'] . $currentDir . '/?' . http_build_query(['img' => $fileName]);
-            echo "<div class='success'>File uploaded successfully. <br>Access your file: <a href='$imageLink' target='_blank'>$imageLink</a></div>";
+            $extension = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
+            $randomName = substr(bin2hex(random_bytes(4)), 0, 8) . '.' . $extension;
+            $uploadFile = $uploadDir . $randomName;
+
+            if (move_uploaded_file($_FILES['image']['tmp_name'], $uploadFile)) {
+                $deleteOption = $_POST['delete_option'] ?? 'time';
+                if ($deleteOption === 'time') {
+                    $maxTime = 24 * 60 * 60;
+                    $deleteTime = isset($_POST['delete_time']) ? min(intval($_POST['delete_time']) * 60 * 60, $maxTime) : 1 * 60 * 60;
+                    $expiration = time() + $deleteTime;
+                    file_put_contents($uploadFile . '.txt', $expiration);
+                } elseif ($deleteOption === 'view') {
+                    file_put_contents($uploadFile . '.txt', 'view');
+                }
+
+                $imageLink = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['HTTP_HOST'] . $currentDir . '/?' . http_build_query(['img' => $randomName]);
+                echo "<div class='success'>File uploaded successfully. <br>Access your file: <a href='$imageLink' target='_blank'>$imageLink</a></div>";
+            } else {
+                echo "<div class='error'>File upload failed.</div>";
+            }
         } else {
-            echo "<div class='error'>File upload failed.</div>";
+            echo "<div class='error'>Invalid file type. Only images are allowed.</div>";
         }
     }
 }
@@ -37,15 +45,11 @@ if (isset($_GET['img'])) {
     $imageFile = __DIR__ . '/uploads/' . $imageName;
     $metaFile = $imageFile . '.txt';
 
-    // Check if the image file exists
     if (file_exists($imageFile) && file_exists($metaFile)) {
         $deleteOption = file_get_contents($metaFile);
-
-        // Serve the image
         header('Content-Type: ' . mime_content_type($imageFile));
         readfile($imageFile);
 
-        // If the image should be deleted after the first view, delete it
         if ($deleteOption === 'view') {
             unlink($imageFile);
             unlink($metaFile);
