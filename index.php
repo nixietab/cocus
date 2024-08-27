@@ -13,10 +13,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $uploadFile = $uploadDir . $fileName;
 
         if (move_uploaded_file($_FILES['image']['tmp_name'], $uploadFile)) {
-            $deleteOption = $_POST['delete_option'];
+            $deleteOption = $_POST['delete_option'] ?? 'time'; // Default to 'time' if not set
             if ($deleteOption === 'time') {
                 $maxTime = 24 * 60 * 60; // 24 hours in seconds
-                $deleteTime = min(intval($_POST['delete_time']) * 60 * 60, $maxTime);
+                $deleteTime = isset($_POST['delete_time']) ? min(intval($_POST['delete_time']) * 60 * 60, $maxTime) : 1 * 60 * 60; // Default to 1 hour if not set
                 $expiration = time() + $deleteTime;
                 file_put_contents($uploadFile . '.txt', $expiration);
             } elseif ($deleteOption === 'view') {
@@ -59,12 +59,13 @@ if (isset($_GET['img'])) {
 // Periodically check and delete expired images
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && !isset($_GET['img'])) {
     $uploadDir = __DIR__ . '/uploads/';
+    $now = time();
     foreach (glob($uploadDir . '*') as $file) {
         if (pathinfo($file, PATHINFO_EXTENSION) !== 'txt') {
             $metaFile = $file . '.txt';
             if (file_exists($metaFile)) {
                 $expiration = file_get_contents($metaFile);
-                if ($expiration !== 'view' && time() > intval($expiration)) {
+                if ($expiration !== 'view' && $now > intval($expiration)) {
                     unlink($file);
                     unlink($metaFile);
                 }
@@ -151,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && !isset($_GET['img'])) {
         <form action="" method="post" enctype="multipart/form-data">
             <input type="file" name="image" required><br>
             <label for="delete_option">Delete after:</label>
-            <select name="delete_option" id="delete_option" required>
+            <select name="delete_option" id="delete_option">
                 <option value="time">Time (hours)</option>
                 <option value="view">First View</option>
             </select><br>
