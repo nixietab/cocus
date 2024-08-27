@@ -1,11 +1,34 @@
 <?php
+// Load configuration
+$config = json_decode(file_get_contents('config.json'), true);
+$uploadLimitBytes = $config['upload_limit_mb'] * 1024 * 1024;
+$randomizeNames = $config['randomize_names'];
+$allowedTypes = $config['allowed_file_types'];
+$enableLogging = $config['enable_logging'];
+$logFile = $config['log_file'];
+
+// Function to log data
+function logData($message) {
+    global $enableLogging, $logFile;
+    if ($enableLogging) {
+        $logEntry = date('Y-m-d H:i:s') . ' - ' . $message . PHP_EOL;
+        file_put_contents($logFile, $logEntry, FILE_APPEND);
+    }
+}
+
 // Handle file uploads
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $fileType = mime_content_type($_FILES['image']['tmp_name']);
-        $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        $fileSize = $_FILES['image']['size'];
+        $originalName = $_FILES['image']['name'];
+        $uploadTime = date('Y-m-d H:i:s');
 
-        if (in_array($fileType, $allowedTypes)) {
+        if (!in_array($fileType, $allowedTypes)) {
+            echo "<div class='error'>Invalid file type. Only images are allowed.</div>";
+        } elseif ($fileSize > $uploadLimitBytes) {
+            echo "<div class='error'>File exceeds the upload limit of {$config['upload_limit_mb']} MB.</div>";
+        } else {
             $currentDir = dirname($_SERVER['SCRIPT_NAME']);
             $uploadDir = __DIR__ . '/uploads/';
 
@@ -14,8 +37,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             $extension = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
-            $randomName = substr(bin2hex(random_bytes(4)), 0, 8) . '.' . $extension;
-            $uploadFile = $uploadDir . $randomName;
+            $fileName = $randomizeNames
+                ? substr(bin2hex(random_bytes(4)), 0, 8) . '.' . $extension
+                : basename($_FILES['image']['name']);
+
+            $uploadFile = $uploadDir . $fileName;
 
             if (move_uploaded_file($_FILES['image']['tmp_name'], $uploadFile)) {
                 $deleteOption = $_POST['delete_option'] ?? 'time';
@@ -28,13 +54,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     file_put_contents($uploadFile . '.txt', 'view');
                 }
 
-                $imageLink = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['HTTP_HOST'] . $currentDir . '/?' . http_build_query(['img' => $randomName]);
+                $imageLink = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['HTTP_HOST'] . $currentDir . '/?' . http_build_query(['img' => $fileName]);
                 echo "<div class='success'>File uploaded successfully. <br>Access your file: <a href='$imageLink' target='_blank'>$imageLink</a></div>";
+
+                // Log the upload event
+                $userIP = $_SERVER['REMOTE_ADDR'];
+                logData("IP: $userIP, Original Name: $originalName, File Name: $fileName, Type: $fileType, Size: $fileSize bytes, Uploaded at: $uploadTime, Link: $imageLink");
             } else {
                 echo "<div class='error'>File upload failed.</div>";
             }
-        } else {
-            echo "<div class='error'>Invalid file type. Only images are allowed.</div>";
         }
     }
 }
@@ -49,6 +77,11 @@ if (isset($_GET['img'])) {
         $deleteOption = file_get_contents($metaFile);
         header('Content-Type: ' . mime_content_type($imageFile));
         readfile($imageFile);
+
+        // Log the view event
+        $viewTime = date('Y-m-d H:i:s');
+        $userIP = $_SERVER['REMOTE_ADDR'];
+        logData("IP: $userIP, File Name: $imageName, Viewed at: $viewTime");
 
         if ($deleteOption === 'view') {
             unlink($imageFile);
