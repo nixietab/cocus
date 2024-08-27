@@ -1,0 +1,7 @@
+{
+    "upload_limit_mb": 5,
+    "randomize_names": true,
+    "allowed_file_types": ["image/jpeg", "image/png", "image/gif", "image/webp"],
+    "enable_logging": true,
+    "log_file": "upload_logs.txt"
+}
