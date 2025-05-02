@@ -118,68 +118,100 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && !isset($_GET['img'])) {
     <meta charset="UTF-8">
     <title>Cocus Image Uploader</title>
     <style>
+        :root {
+            --bg-color: #0f0f0f;
+            --text-color: #e0e0e0;
+            --accent-color: #7c7c7c;
+            --hover-color: #4a9eff;
+            --card-bg: #1a1a1a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            background-color: #1c1c1c;
-            color: #d4d4d4;
-            font-family: 'Verdana', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-color);
+            font-family: monospace;
+            line-height: 1.6;
+            padding: 2rem 1rem;
+            min-height: 100vh;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            flex-direction: column;
-            height: 100vh;
-            margin: 0;
         }
+
         .form-container {
-            background-color: #2d2d2d;
+            background-color: var(--card-bg);
             padding: 20px;
-            border-radius: 10px;
-            width: 300px;
+            border-radius: 8px;
+            max-width: 400px;
+            width: 100%;
             text-align: center;
+            box-shadow: 0 0 10px #000;
         }
+
         input, select, button {
             width: 100%;
             padding: 10px;
             margin: 10px 0;
-            background-color: #3c3c3c;
-            color: #d4d4d4;
+            background-color: #222;
+            color: var(--text-color);
             border: 1px solid #444;
-            border-radius: 5px;
-            box-sizing: border-box;
+            border-radius: 4px;
         }
+
         button {
-            background-color: #007acc;
+            background-color: var(--hover-color);
             color: #fff;
             border: none;
             cursor: pointer;
-            transition: background-color 0.3s ease;
         }
+
         button:hover {
-            background-color: #005ea1;
+            background-color: #2c85ff;
         }
+
         h2 {
-            margin-bottom: 20px;
-            font-weight: normal;
+            margin-bottom: 1rem;
         }
+
         .success, .error {
-            margin: 20px 0;
-            padding: 10px;
-            border-radius: 4px;
-            color: #ffffff;
+            padding: 12px;
+            border-radius: 2px;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+            font-size: 0.95rem;
+            text-align: left;
         }
+
         .success {
-            background-color: #007acc;
+            background-color: #1a4f2d;
+            color: #a0e6b0;
         }
+
         .error {
-            background-color: #cc0000;
+            background-color: #4f1a1a;
+            color: #e6a0a0;
         }
+
         a {
-            color: #61dafb;
+            color: var(--hover-color);
+            margin-top: 1rem;
+            font-size: 0.8rem;
             text-decoration: none;
-            font-size: 12px;
-            margin-top: 20px;
         }
+
         a:hover {
             text-decoration: underline;
+        }
+
+        input[name="delete_time"] {
+            transition: opacity 0.2s ease;
         }
     </style>
 </head>
@@ -198,5 +230,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && !isset($_GET['img'])) {
         </form>
     </div>
     <a href="https://github.com/nixietab/cocus" target="_blank">Made with freedom</a>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const deleteOption = document.getElementById('delete_option');
+        const deleteTimeInput = document.querySelector('input[name="delete_time"]');
+
+        function toggleDeleteTime() {
+            if (deleteOption.value === 'view') {
+                deleteTimeInput.style.display = 'none';
+            } else {
+                deleteTimeInput.style.display = 'block';
+            }
+        }
+
+        deleteOption.addEventListener('change', toggleDeleteTime);
+        toggleDeleteTime();
+    });
+    </script>
 </body>
 </html>
